@@ -30,13 +30,10 @@
 <script type="text/javascript">
     (function () {
         var serverModel = @Html.Raw(Json.Encode(Model));
-        for(var i = 0; i < serverModel.length; i++){
-            serverModel[i] = ko.mapping.fromJS(serverModel[i]);
-        }
 
-        var vm ={
+        var vm = {
             newTask: ko.observable(""),
-            tasks: ko.observableArray(serverModel),
+            tasks: ko.mapping.toJS(serverModel),
             addTask: function(){
                 if (this.newTask() != "") {
                     this.tasks.push(ko.mapping.fromJS({
