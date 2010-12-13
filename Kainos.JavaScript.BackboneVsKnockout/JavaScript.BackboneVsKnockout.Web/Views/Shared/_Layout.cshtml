@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <title>Backbone vs Knockout</title>
+        @* CORE LIBRARIES *@
+        <script src="@Url.Content("~/Scripts/jquery.js")" type="text/javascript"></script>        
+        <script src="@Url.Content("~/Scripts/plugins/tmpl.js")" type="text/javascript"></script>        
+        <script src="@Url.Content("~/Scripts/json2.js")" type="text/javascript"></script>
+        <script type="text/javascript">
+            function doSave(json) {
+                $.ajax({
+                    url: '@Url.Action("Save")',
+                    type: 'post',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    data: json,
+                    success: function () {
+                        alert("yes");
+                    },
+                    failure: function () {
+                        alert("no");
+                    }
+                })
+            }
+        </script>
+    </head>
+    <body>
+        @RenderBody()
+    </body>
+</html>

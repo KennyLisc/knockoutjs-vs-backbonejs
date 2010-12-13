@@ -1,0 +1,86 @@
+@model IList<JavaScript.BackboneVsKnockout.Web.Model.ToDo>
+
+<script src="@Url.Content("~/Scripts/knockout.js")" type="text/javascript"></script>
+<script src="@Url.Content("~/Scripts/knockout.mapping.js")" type="text/javascript"></script>
+
+<h1>Todos</h1>
+
+<input type="text" placeholder="What do you need to get done?" id="task" data-bind='value: newTask, valueUpdate: "afterkeydown"'/>
+<button id="add-task" data-bind="click: addTask">Add Task</button>
+<button id="save" data-bind="click: save">Save</button>
+
+<ul data-bind='template: "taskTmpl"'>
+</ul>
+
+<div id="todo-stats">
+    Total: <b data-bind="text: tasks().length"></b>
+    Completed: <b data-bind="text: completed"></b>
+    Outstanding: <b data-bind="text: outstanding"></b>
+</div>
+
+<script id="taskTmpl" type="text/x-jquery-tmpl">
+    {{each(i, task) tasks()}}
+        <li>
+            <span data-bind="style: { 'text-decoration': task.Complete() ? 'line-through' : 'none'  }">${Task}</span>
+            <span data-bind="click: function(){ this.completeTask(task) }, visible: !task.Complete() ">Complete</span>
+            <span data-bind="click: function() { this.remove(task); }">Remove</span>
+        </li>
+    {{/each}}
+</script>
+<script type="text/javascript">
+    (function () {
+        var serverModel = @Html.Raw(Json.Encode(Model));
+        for(var i = 0; i < serverModel.length; i++){
+            serverModel[i] = ko.mapping.fromJS(serverModel[i]);
+        }
+
+        var vm ={
+            newTask: ko.observable(""),
+            tasks: ko.observableArray(serverModel),
+            addTask: function(){
+                if (this.newTask() != "") {
+                    this.tasks.push(ko.mapping.fromJS({
+                        Task: this.newTask(),
+                        Complete: false,
+                    }));
+
+                    this.newTask("");
+                }
+            },
+            remove: function(task){
+                ko.utils.arrayRemoveItem(this.tasks, task);
+            },
+            completeTask: function(task){
+                task.Complete(true);
+            },
+            save: function(){
+                var data = ko.toJSON(this.tasks);
+                doSave(data);
+            }
+        };
+
+        vm.completed = ko.dependentObservable(function(){
+            var tasks = this.tasks();
+            var counter = 0;
+            for(var i = 0; i < tasks.length; i++){
+                if(tasks[i].Complete()){
+                    counter++;
+                }
+            }
+            return counter;
+        }, vm);
+
+        vm.outstanding = ko.dependentObservable(function(){
+            var tasks = this.tasks();
+            var counter = tasks.length;
+            for(var i = 0; i < tasks.length; i++){
+                if(tasks[i].Complete()){
+                    counter--;
+                }
+            }
+            return counter;
+        }, vm);
+
+        ko.applyBindings(vm);
+    } ());
+</script>

@@ -1,0 +1,143 @@
+@model IList<JavaScript.BackboneVsKnockout.Web.Model.ToDo>
+
+@* ------------------------------------------------------------------------- *@
+@*                         E X T R A   S C R I P T S                         *@
+@* ------------------------------------------------------------------------- *@
+<script src="@Url.Content("~/Scripts/underscore.js")" type="text/javascript"></script>
+<script src="@Url.Content("~/Scripts/backbone.js")" type="text/javascript"></script>
+
+@* ------------------------------------------------------------------------- *@
+@*                          F O R M   S E C T I O N                          *@
+@* ------------------------------------------------------------------------- *@
+<script type="text/javascript">
+    $(function () {
+        var ToDo, ToDoCollection, Todos, ToDoView, AppView, App, StatView, stats;
+
+        Backbone.sync = function(method, model, success, error) {
+            success(model);
+        }
+
+        ToDo = Backbone.Model;
+
+        ToDoCollection = Backbone.Collection.extend({
+            model: ToDo,
+            complete: function(){
+                return this.filter(function(item){
+                    return item.get("Complete");
+                }).length;
+            },
+            outstanding: function(){
+                return this.length - this.complete();
+            }
+        });
+
+        Todos = new ToDoCollection(@Html.Raw(Json.Encode(Model)));
+
+        ToDoView = Backbone.View.extend({
+            tagName: 'li',
+            events: {
+                "click .complete": "completeItem",
+                "click .remove": "removeItem"
+            },
+            render: function(){
+                $(this.el).html($("#todoitem-tpl").tmpl(this.model.toJSON()));
+                $("#todo-list").append(this.el);
+                this.delegateEvents();
+            },
+            completeItem: function(){
+                this.model.set({"Complete": true});
+                this.$(".taskdescription").css("text-decoration", "line-through");
+                this.$(".complete").css("display", "none");
+            },
+            removeItem: function(){
+                this.remove();
+                this.model.destroy();
+            }
+        })
+
+
+        StatView = Backbone.View.extend({
+            el: $("#todo-stats"),
+            initialize: function(){
+                var self = this;
+                this.model.bind("all", function(){ self.render() });
+                this.render();
+            },
+            render: function(stats){
+                var tpl = $("#todostats-tpl").tmpl({
+                    total: this.model.length,
+                    complete: this.model.complete(),
+                    outstanding: this.model.outstanding()
+                });
+
+                this.el.html(tpl);
+            }
+        });
+
+        AppView = Backbone.View.extend({
+            el: $(document.body),
+            events: {
+                "click #add-todo": "addTodo",
+                "click #save": "save"
+            },
+            initialize: function(){
+                Todos.forEach(function(model){
+                    this.addTodo(null, model);
+                }, this);
+
+                new StatView({ model: Todos });
+            },
+            addTodo: function(event, todo){
+                var view, task;
+                if(!todo){
+                    task = $('#new-todo').val()
+
+                    if(!task || task === ""){
+                        return;
+                    }
+
+                    todo = Todos.create({
+                        Task: $('#new-todo').val(),
+                        Completed: false
+                    });
+                }
+                view = new ToDoView({ model: todo });
+                view.render();
+
+                $('#new-todo').val("")[0].focus();
+            },
+            save: function(){
+                var data = JSON.stringify(Todos.toJSON());
+                doSave(data);
+            }
+        });
+
+        App = new AppView;
+    });
+</script>
+
+@* ------------------------------------------------------------------------- *@
+@*                          F O R M   S E C T I O N                          *@
+@* ------------------------------------------------------------------------- *@
+<h1>Todos</h1>
+<input id="new-todo" type="text" />
+<button id="add-todo">Add</button>
+<button id="save">Save</button>
+<ul id="todo-list"></ul>
+<div id="todo-stats"></div>
+
+@* ------------------------------------------------------------------------- *@
+@*                             T E M P L A T E S                             *@
+@* ------------------------------------------------------------------------- *@
+<script id="todoitem-tpl" type="text/x-jquery-tmpl">
+    <b class="taskdescription" {{if Complete}}style="text-decoration:line-through;"{{/if}}>${Task}</b>
+    {{if !Complete}}
+        <a class="complete">Complete</a>
+    {{/if}}
+    <a class="remove">Remove</a>
+</script>
+<script id="todostats-tpl" type="text/x-jquery-tmpl">
+    Total: <b>${total}</b>
+    Completed: <b>${complete}</b>
+    Outstanding: <b>${outstanding}</b>
+</script>
